@@ -4,6 +4,8 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const ejs = require("ejs");
 const low = require("lodash");
+const mysql = require("mysql");
+const config = require("./config.js");
 
 const homeStartingContent = "Lacus vel facilisis volutpat est velit egestas dui id ornare. Semper auctor neque vitae tempus quam. Sit amet cursus sit amet dictum sit amet justo. Viverra tellus in hac habitasse. Imperdiet proin fermentum leo vel orci porta. Donec ultrices tincidunt arcu non sodales neque sodales ut. Mattis molestie a iaculis at erat pellentesque adipiscing. Magnis dis parturient montes nascetur ridiculus mus mauris vitae ultricies. Adipiscing elit ut aliquam purus sit amet luctus venenatis lectus. Ultrices vitae auctor eu augue ut lectus arcu bibendum at. Odio euismod lacinia at quis risus sed vulputate odio ut. Cursus mattis molestie a iaculis at erat pellentesque adipiscing.";
 const aboutContent = "Hac habitasse platea dictumst vestibulum rhoncus est pellentesque. Dictumst vestibulum rhoncus est pellentesque elit ullamcorper. Non diam phasellus vestibulum lorem sed. Platea dictumst quisque sagittis purus sit. Egestas sed sed risus pretium quam vulputate dignissim suspendisse. Mauris in aliquam sem fringilla. Semper risus in hendrerit gravida rutrum quisque non tellus orci. Amet massa vitae tortor condimentum lacinia quis vel eros. Enim ut tellus elementum sagittis vitae. Mauris ultrices eros in cursus turpis massa tincidunt dui.";
@@ -16,12 +18,20 @@ app.set('view engine', 'ejs');
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(express.static("public"));
 
-let posts = [];
 
 app.get("/",function(req,res){
+
+  let connection = mysql.createConnection(config);
+  let sql = `SELECT * FROM blog`;
+  connection.query(sql,function(err,results,fields) {
+    if(err){
+      return console.error(err.message);
+    }
+    res.render("home",{homeParagraph: homeStartingContent,
+      posts: results});
+  })
+  connection.end();
   
-  res.render("home",{homeParagraph: homeStartingContent,
-    posts: posts});
 });
 
 app.get("/about",function(req,res) {
@@ -38,25 +48,35 @@ app.get("/compose",function(req,res) {
 
 app.get("/posts/:postname",function(req,res) {
   let temp = low.lowerCase(req.params.postname);
-
-  posts.forEach(function(post) {
-    if(temp === low.lowerCase(post.title)){
-
-      res.render("post",{
-        postTitle: post.title,
-        postContent: post.content
-      });
+  // let searched = low.lowerCase(post.title)
+  let connection = mysql.createConnection(config);
+  let sql = `select * from blog where title=?`;
+  let data = [temp];
+  connection.query(sql,data,function(err,results,fields) {
+    if(err){
+      return console.error(err.message);
     }
+    res.render("post",{
+      postTitle: results[0].title,
+      postContent: results[0].body
+    });
   });
+  connection.end();
 })
 
 app.post("/compose",function(req,res) {
-  let blog = {
-    title: req.body.blogTitle,
-    content: req.body.blogBody
-  }
-  posts.push(blog);
-  res.redirect("/");
+    let title= req.body.blogTitle;
+    let content= req.body.blogBody;
+    let connection = mysql.createConnection(config);
+    let sql = `INSERT INTO blog VALUES(default,?,?)`;
+    let data = [title,content];
+    connection.query(sql,data,function(err,results,fields) {
+      if(err){
+        return console.error(err.message);
+      }
+      res.redirect("/");
+    })
+    connection.end();
 })
 
 
