@@ -47,8 +47,7 @@ app.get("/compose",function(req,res) {
 })
 
 app.get("/posts/:postname",function(req,res) {
-  let temp = low.lowerCase(req.params.postname);
-  // let searched = low.lowerCase(post.title)
+  let temp = req.params.postname;
   let connection = mysql.createConnection(config);
   let sql = `select * from blog where title=?`;
   let data = [temp];
@@ -77,6 +76,20 @@ app.post("/compose",function(req,res) {
       res.redirect("/");
     })
     connection.end();
+})
+
+app.post("/delete",function(req,res) {
+  let name = req.body.delete;
+  let connection = mysql.createConnection(config);
+  let sql = `DELETE FROM blog where title=?`;
+  let data = [name];
+  connection.query(sql,data,function(err,results,fields){
+    if(err){
+      return console.error(err.message);
+    }
+    res.redirect("/");
+  });
+  connection.end();
 })
 
 
